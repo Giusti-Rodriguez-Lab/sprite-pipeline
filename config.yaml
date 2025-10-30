@@ -1,0 +1,63 @@
+##########################
+#### use python2.7 
+#### pip install pysam
+#fastq directory downloaded CORRECTED 02/14/25
+FASTQ: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/raw_fastq
+#barcode id
+RUNBC: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/java/BarcodeIdentification_v1.2.0.jar
+#barcode configuration file
+CONFIGBC: misc/config_dpm6_y-stag_scSPRITE2.txt
+#R1 fastq trimmed length
+TRIMR1: 100
+#run STAR
+RUNSTAR: /apps/star/2.7.6a/bin/STAR  #Please specifiy your local STAR directory CORRECTED 02/14/25
+#star index
+STARINDEX: /blue/giustirodriguezp/PROJECTS/Methylation/mm10_index 
+#ligation efficiency
+RUNLIG: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/python/get_ligation_efficiency.py
+#run samtools
+RUNSAM: /apps/samtools/1.20/bin/samtools   #Please specify your local samtools directory CHANGED 02/18/25
+#filter_all_tags
+ALLTAG: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/python/filter_all_tags.py
+#mask regions
+MASK: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/mm10.gatk35-and-rmsk140.bed
+#run bedtools
+RUNBED: /apps/bedtools/2.30.0/bin/bedtools   #Please specify your local bedtools2 directory CHANGED 02/18/25
+#get clusters
+GETCLUSTER: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/python/get_clusters.py
+#get ligation efficiency
+RUNLIG: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/python/get_ligation_efficiency.py
+#run fastqc
+RUNQC: /apps/fastqc/0.12.1/fastqc   #Please specify your local fastqc directory CHANGED 02/18/25
+#run sprite_contatc
+RUNCONTACT: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/python/get_sprite_contacts.py
+#get genome assembly information
+ASSEMBLY: mm10
+#get chromosome information (chrN for intra-chromosomal interaction, genome for inter-chromosomal interaction) to generate contact map
+CHR: ["chr1"]
+#get minimal cluster size for calculating contact map
+CLUSTERMIN: 2
+#get maximal cluster size for calculating contact map
+CLUSTERMAX: 1000
+#The binning resolution for contact map
+RESOLUTION: 1000000
+#downweigting option for contact
+DOWNWEIGHT: none
+#hicorrector ic excutable path
+RUNHIC: /apps/hi-corrector/1.2/bin/   #Please specify your local Hi-Corrector directory CORRECTED 02/14/25
+#plot contact heatmap
+HEATMAP: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/r/heatmap_gen.r
+#max value for the color-scale of the heatmaps
+MAX: 1
+#estimated number of single-cells
+CELLSEL: 4000
+#split by celll script
+SPLITBYCELL: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/split_by_cell.py
+#numreads numcontacts script
+NUMREADSCONTACTS: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/numreads_numcontacts.py
+#normalized cdf single-cell reads clusters
+NORMCDF: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/normalized_cdf_sc_reads_clusters.py
+#cluster breakdown
+CLUSTERBREAKDOWN: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/KK_scSPRITE/scSPRITE/misc/cluster_breakdown.py
+#estimiated number of top single-cells for contact and heatmap
+CELLTOP: 20
