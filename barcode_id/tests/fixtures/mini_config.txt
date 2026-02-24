@@ -1,0 +1,20 @@
+# Mini config for unit/integration testing
+# READ1 = DPM only (first tag, zero laxity)
+# READ2 = Y | SPACER(3) | ODD (laxity=2)
+
+READ1 = DPM
+READ2 = Y|SPACER|ODD
+SPACER = 3
+LAXITY = 2
+
+# DPM tags — exact match, 8 bp
+DPM	DPM_A	AAAACCCC	0
+DPM	DPM_B	GGGGTTTT	0
+
+# Y tags — exact match, variable length (8 and 7 bp to exercise multi-length)
+Y	Y_1	TTTTAAAA	0
+Y	Y_2	CCCCGGG	0
+
+# ODD tags — 1 mismatch allowed, 8 bp
+ODD	Odd_1	ATCGATCG	1
+ODD	Odd_2	GCTAGCTA	1

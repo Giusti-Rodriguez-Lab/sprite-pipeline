@@ -1,7 +1,10 @@
 from os.path import join
 configfile: "config.yaml"
 #fulgent_dir=config["FASTQ"]
-barcode_id_jar=config["RUNBC"]
+barcode_id_jar     = config["RUNBC"]
+runbc_rust         = config.get("RUNBC_RUST", False)
+barcode_id_rust    = config.get("RUNBC_RUST_BIN", "barcode_id/target/release/barcode_id")
+runbc_rust_threads = config.get("RUNBC_RUST_THREADS", 0)
 config_bc=config["CONFIGBC"]
 trimr1=config["TRIMR1"]
 star=config["RUNSTAR"]
@@ -76,18 +79,30 @@ rule run_fastqc:
 
 rule run_barcode:
     input:
-        barcode_id_jar,
-        config_bc,
-        "raw_fastq/{sample}_1.fq.gz",
-        "raw_fastq/{sample}_2.fq.gz"
+        bc_tool   = lambda _: barcode_id_rust if runbc_rust else barcode_id_jar,
+        bc_config = config_bc,
+        r1        = "raw_fastq/{sample}_1.fq.gz",
+        r2        = "raw_fastq/{sample}_2.fq.gz"
     output:
         "new_fastq/{sample}_R1.barcoded.fastq.gz",
         "new_fastq/{sample}_R2.barcoded.fastq.gz"
-    shell:
-        """
-         java -jar {input[0]} --input1 {input[2]} --input2 {input[3]} \
-             --output1 {output[0]} --output2 {output[1]} --config {input[1]}
-        """
+    log:
+        "log/barcode_{sample}.log"
+    threads: runbc_rust_threads if (runbc_rust and runbc_rust_threads > 0) else 1
+    run:
+        if runbc_rust:
+            shell(
+                "{input.bc_tool} --input1 {input.r1} --input2 {input.r2} "
+                "--output1 {output[0]} --output2 {output[1]} "
+                "--config {input.bc_config} --threads {threads} "
+                "2> {log}"
+            )
+        else:
+            shell(
+                "java -jar {input.bc_tool} --input1 {input.r1} --input2 {input.r2} "
+                "--output1 {output[0]} --output2 {output[1]} --config {input.bc_config} "
+                "2> {log}"
+            )
 
 rule get_ligation_efficiency:
     input:

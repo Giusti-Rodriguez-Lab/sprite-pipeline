@@ -5,6 +5,12 @@
 FASTQ: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/raw_fastq
 #barcode id
 RUNBC: /blue/giustirodriguezp/PROJECTS/Sprite/Guttman_Ismagilov_Labs/scSPRITE/misc/sprite-pipeline/java/BarcodeIdentification_v1.2.0.jar
+# Set RUNBC_RUST: true to use the Rust barcode_id binary instead of the Java JAR
+RUNBC_RUST: false
+# Path to the compiled Rust binary (used when RUNBC_RUST: true)
+RUNBC_RUST_BIN: barcode_id/target/release/barcode_id
+# Number of threads for the Rust binary (0 = all available CPUs)
+RUNBC_RUST_THREADS: 0
 #barcode configuration file
 CONFIGBC: misc/config_dpm6_y-stag_scSPRITE2.txt
 #R1 fastq trimmed length

@@ -1,0 +1,31 @@
+[package]
+name = "barcode_id"
+version = "0.1.0"
+edition = "2021"
+description = "Fast SPRITE barcode identification — Rust replacement for BarcodeIdentification_v1.2.0.jar"
+
+[[bin]]
+name = "barcode_id"
+path = "src/main.rs"
+
+[dependencies]
+flate2   = "1.0"
+ahash    = "0.8"
+rayon    = "1.10"
+clap     = { version = "4", features = ["derive"] }
+thiserror = "1"
+log      = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+tempfile  = "3"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name    = "barcode_id_bench"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

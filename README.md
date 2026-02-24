@@ -117,6 +117,69 @@ CHR: ["chr1","chr2","chrX","chrY"]
 
 ---
 
+## `barcode_id` — Rust barcode identification tool
+
+A fast drop-in replacement for `BarcodeIdentification_v1.2.0.jar`, located in `barcode_id/`.
+
+### Prerequisites
+
+Rust toolchain (stable). Install once via:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
+
+### Build
+
+```bash
+cd barcode_id
+cargo build --release
+```
+
+Binary is produced at `barcode_id/target/release/barcode_id`.
+
+### Run
+
+```bash
+barcode_id/target/release/barcode_id \
+    --input1  raw_fastq/SAMPLE_R1.fq.gz \
+    --input2  raw_fastq/SAMPLE_R2.fq.gz \
+    --output1 new_fastq/SAMPLE_R1.barcoded.fq.gz \
+    --output2 new_fastq/SAMPLE_R2.barcoded.fq.gz \
+    --config  misc/config_dpm6_y-stag_scSPRITE2.txt \
+    --threads 8   # 0 = all CPUs
+```
+
+All arguments match the Java JAR flags exactly.
+
+### Test
+
+```bash
+cd barcode_id
+cargo test       # runs 58 unit + integration tests
+```
+
+### Benchmark (Rust vs Java)
+
+```bash
+# Generate 500K synthetic reads and time both tools
+./tests/bench_vs_java.sh --n-reads 500000
+
+# Results are appended to benchmarks/results.md
+cat benchmarks/results.md
+```
+
+### Use via Snakemake
+
+Set in `config.yaml`:
+```yaml
+RUNBC_RUST: true                                           # enable Rust binary
+RUNBC_RUST_BIN: barcode_id/target/release/barcode_id      # path to binary
+RUNBC_RUST_THREADS: 8                                     # worker threads (0 = all CPUs)
+```
+
+---
+
 ## Notes / gotchas
 
 - **Samples detection**: samples come from `raw_fastq/*_1.fq.gz`.
