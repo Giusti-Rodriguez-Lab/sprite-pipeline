@@ -96,7 +96,7 @@ fn match_tag_and_advance<'a>(
             let end = advance + len;
             if end <= bases.len() {
                 let candidate = &bases[advance..end];
-                if let Some(name) = tag_maps.lookup(category, candidate) {
+                if let Some(name) = tag_maps.lookup_packed(category, candidate) {
                     label.push(b'[');
                     label.extend_from_slice(name.as_bytes());
                     label.push(b']');
