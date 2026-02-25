@@ -10,7 +10,7 @@ RUNBC_RUST: false
 # Path to the compiled Rust binary (used when RUNBC_RUST: true)
 RUNBC_RUST_BIN: barcode_id/target/release/barcode_id
 # Number of threads for the Rust binary (0 = all available CPUs)
-RUNBC_RUST_THREADS: 0
+RUNBC_RUST_THREADS: 16
 #barcode configuration file
 CONFIGBC: misc/config_dpm6_y-stag_scSPRITE2.txt
 #R1 fastq trimmed length
