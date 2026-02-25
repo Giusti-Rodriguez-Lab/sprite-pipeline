@@ -44,10 +44,10 @@ fn run_binary(
     output1: &Path,
     output2: &Path,
 ) -> std::process::ExitStatus {
-    run_binary_threaded(config, input1, input2, output1, output2, 1)
+    run_binary_threaded(config, input1, input2, output1, output2, 1).0
 }
 
-/// Run with an explicit --threads count.
+/// Run with an explicit --threads count; returns (exit status, captured stderr).
 fn run_binary_threaded(
     config:  &Path,
     input1:  &Path,
@@ -55,17 +55,20 @@ fn run_binary_threaded(
     output1: &Path,
     output2: &Path,
     threads: usize,
-) -> std::process::ExitStatus {
+) -> (std::process::ExitStatus, String) {
     let binary = env!("CARGO_BIN_EXE_barcode_id");
-    Command::new(binary)
+    let out = Command::new(binary)
+        .env("RUST_LOG", "info")
         .arg("--config")  .arg(config)
         .arg("--input1")  .arg(input1)
         .arg("--input2")  .arg(input2)
         .arg("--output1") .arg(output1)
         .arg("--output2") .arg(output2)
         .arg("--threads") .arg(threads.to_string())
-        .status()
-        .expect("Failed to launch barcode_id binary")
+        .output()
+        .expect("Failed to launch barcode_id binary");
+    let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
+    (out.status, stderr)
 }
 
 /// FASTQ fixture: build a minimal 4-line FASTQ string from name + sequence.
@@ -406,8 +409,14 @@ fn test_parallel_output_order_preserved() {
     write_gz(&in1, &make_fastq(&r1_pairs));
     write_gz(&in2, &make_fastq(&r2_pairs));
 
-    let status = run_binary_threaded(&config_path(), &in1, &in2, &out1, &out2, 4);
+    let (status, stderr) = run_binary_threaded(&config_path(), &in1, &in2, &out1, &out2, 4);
     assert!(status.success());
+
+    // Verify rayon actually configured 4 threads (not silently falling back to 1)
+    assert!(
+        stderr.contains("Using 4 rayon threads."),
+        "Expected 'Using 4 rayon threads.' in stderr, got:\n{}", stderr,
+    );
 
     let headers1 = parse_headers(&read_gz(&out1));
     let headers2 = parse_headers(&read_gz(&out2));
@@ -453,12 +462,18 @@ fn test_parallel_matches_single_threaded() {
     // Single-threaded run
     let out1_single = tmp.path().join("out1_single.fq.gz");
     let out2_single = tmp.path().join("out2_single.fq.gz");
-    assert!(run_binary_threaded(&config_path(), &in1, &in2, &out1_single, &out2_single, 1).success());
+    let (s1, stderr1) = run_binary_threaded(&config_path(), &in1, &in2, &out1_single, &out2_single, 1);
+    assert!(s1.success());
+    assert!(stderr1.contains("Using 1 rayon threads."),
+        "Expected 'Using 1 rayon threads.' in stderr, got:\n{}", stderr1);
 
     // Multi-threaded run
     let out1_multi = tmp.path().join("out1_multi.fq.gz");
     let out2_multi = tmp.path().join("out2_multi.fq.gz");
-    assert!(run_binary_threaded(&config_path(), &in1, &in2, &out1_multi, &out2_multi, 4).success());
+    let (s4, stderr4) = run_binary_threaded(&config_path(), &in1, &in2, &out1_multi, &out2_multi, 4);
+    assert!(s4.success());
+    assert!(stderr4.contains("Using 4 rayon threads."),
+        "Expected 'Using 4 rayon threads.' in stderr, got:\n{}", stderr4);
 
     let h_single = parse_headers(&read_gz(&out1_single));
     let h_multi  = parse_headers(&read_gz(&out1_multi));
