@@ -11,7 +11,7 @@ use barcode_id::{fastq, matcher};
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Records per batch handed to the rayon thread pool.
-const BATCH_SIZE: usize = 10_000;
+const BATCH_SIZE: usize = 100_000;
 
 // ---------------------------------------------------------------------------
 // CLI

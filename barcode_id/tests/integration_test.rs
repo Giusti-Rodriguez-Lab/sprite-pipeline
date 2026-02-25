@@ -44,6 +44,18 @@ fn run_binary(
     output1: &Path,
     output2: &Path,
 ) -> std::process::ExitStatus {
+    run_binary_threaded(config, input1, input2, output1, output2, 1)
+}
+
+/// Run with an explicit --threads count.
+fn run_binary_threaded(
+    config:  &Path,
+    input1:  &Path,
+    input2:  &Path,
+    output1: &Path,
+    output2: &Path,
+    threads: usize,
+) -> std::process::ExitStatus {
     let binary = env!("CARGO_BIN_EXE_barcode_id");
     Command::new(binary)
         .arg("--config")  .arg(config)
@@ -51,6 +63,7 @@ fn run_binary(
         .arg("--input2")  .arg(input2)
         .arg("--output1") .arg(output1)
         .arg("--output2") .arg(output2)
+        .arg("--threads") .arg(threads.to_string())
         .status()
         .expect("Failed to launch barcode_id binary")
 }
@@ -358,5 +371,100 @@ fn test_header_format_regex() {
             after.contains('[') && after.contains(']'),
             "Header barcode section must have [...] tokens: {}", h,
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Parallelization tests
+// ---------------------------------------------------------------------------
+
+/// Pair 10 — output order is preserved under multi-threaded execution.
+///
+/// Generate 500 pairs with sequential names (read_0000..read_0499).  Run with
+/// --threads 4.  If rayon's par_iter+collect ordering guarantee is broken the
+/// headers will come back in an arbitrary order; this test catches that.
+#[test]
+fn test_parallel_output_order_preserved() {
+    let tmp = TempDir::new().unwrap();
+    let n: usize = 500;
+
+    let names: Vec<String> = (0..n).map(|i| format!("read_{:04}", i)).collect();
+
+    let r1_pairs: Vec<(&str, &str)> = names
+        .iter()
+        .map(|name| (name.as_str(), "AAAACCCCXXXXXXXXXX"))
+        .collect();
+    let r2_pairs: Vec<(&str, &str)> = names
+        .iter()
+        .map(|name| (name.as_str(), "TTTTAAAANNNNATCGATCG"))
+        .collect();
+
+    let in1  = tmp.path().join("r1.fq.gz");
+    let in2  = tmp.path().join("r2.fq.gz");
+    let out1 = tmp.path().join("out1.fq.gz");
+    let out2 = tmp.path().join("out2.fq.gz");
+    write_gz(&in1, &make_fastq(&r1_pairs));
+    write_gz(&in2, &make_fastq(&r2_pairs));
+
+    let status = run_binary_threaded(&config_path(), &in1, &in2, &out1, &out2, 4);
+    assert!(status.success());
+
+    let headers1 = parse_headers(&read_gz(&out1));
+    let headers2 = parse_headers(&read_gz(&out2));
+
+    assert_eq!(headers1.len(), n, "output1 record count mismatch");
+    assert_eq!(headers2.len(), n, "output2 record count mismatch");
+
+    for (i, (h1, h2)) in headers1.iter().zip(headers2.iter()).enumerate() {
+        let expected_name = format!("@read_{:04}::", i);
+        assert!(
+            h1.starts_with(&expected_name),
+            "output1 record {} out of order: expected prefix '{}', got '{}'",
+            i, expected_name, h1,
+        );
+        assert_eq!(h1, h2, "output1 and output2 headers differ at record {}", i);
+    }
+}
+
+/// Pair 11 — results are identical regardless of thread count.
+///
+/// Run the same input through --threads 1 and --threads 4, then compare every
+/// output header.  Verifies that parallelism does not change correctness.
+#[test]
+fn test_parallel_matches_single_threaded() {
+    let tmp = TempDir::new().unwrap();
+    let n: usize = 200;
+
+    let names: Vec<String> = (0..n).map(|i| format!("r{}", i)).collect();
+    let r1_pairs: Vec<(&str, &str)> = names
+        .iter()
+        .map(|name| (name.as_str(), "AAAACCCCXXXXXXXXXX"))
+        .collect();
+    let r2_pairs: Vec<(&str, &str)> = names
+        .iter()
+        .map(|name| (name.as_str(), "TTTTAAAANNNNATCGATCG"))
+        .collect();
+
+    let in1 = tmp.path().join("r1.fq.gz");
+    let in2 = tmp.path().join("r2.fq.gz");
+    write_gz(&in1, &make_fastq(&r1_pairs));
+    write_gz(&in2, &make_fastq(&r2_pairs));
+
+    // Single-threaded run
+    let out1_single = tmp.path().join("out1_single.fq.gz");
+    let out2_single = tmp.path().join("out2_single.fq.gz");
+    assert!(run_binary_threaded(&config_path(), &in1, &in2, &out1_single, &out2_single, 1).success());
+
+    // Multi-threaded run
+    let out1_multi = tmp.path().join("out1_multi.fq.gz");
+    let out2_multi = tmp.path().join("out2_multi.fq.gz");
+    assert!(run_binary_threaded(&config_path(), &in1, &in2, &out1_multi, &out2_multi, 4).success());
+
+    let h_single = parse_headers(&read_gz(&out1_single));
+    let h_multi  = parse_headers(&read_gz(&out1_multi));
+
+    assert_eq!(h_single.len(), h_multi.len(), "record count differs between 1-thread and 4-thread runs");
+    for (i, (hs, hm)) in h_single.iter().zip(h_multi.iter()).enumerate() {
+        assert_eq!(hs, hm, "header mismatch at record {} between 1-thread and 4-thread runs", i);
     }
 }

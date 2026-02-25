@@ -117,11 +117,68 @@ fn bench_batch_throughput(c: &mut Criterion) {
 }
 
 // ---------------------------------------------------------------------------
+// D: Thread scaling — 10 000 pairs processed with 1 / 2 / 4 / 8 threads
+//
+// Uses non-global ThreadPool instances so each thread count is isolated from
+// the others and from any global pool built by main().
+// ---------------------------------------------------------------------------
+
+fn bench_batch_scaling(c: &mut Criterion) {
+    const N: u64 = 10_000;
+
+    let config   = Config::from_str_content(PROD_CONFIG).expect("PROD_CONFIG parse");
+    let tag_maps = TagMaps::build(&config);
+
+    let dummy_r1 = Record {
+        header: b"@r1".to_vec(),
+        seq:    b"ACGT".to_vec(),
+        plus:   b"+".to_vec(),
+        qual:   b"IIII".to_vec(),
+    };
+    let dummy_r2 = Record {
+        header: b"@r1".to_vec(),
+        seq:    REALISTIC_R2.to_vec(),
+        plus:   b"+".to_vec(),
+        qual:   vec![b'I'; REALISTIC_R2.len()],
+    };
+    let pairs: Vec<(Record, Record)> =
+        (0..N).map(|_| (dummy_r1.clone(), dummy_r2.clone())).collect();
+
+    let mut group = c.benchmark_group("batch_scaling");
+    group.throughput(Throughput::Elements(N));
+
+    for &threads in &[1usize, 2, 4, 8] {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .expect("ThreadPool build failed");
+
+        group.bench_with_input(
+            BenchmarkId::new("threads", threads),
+            &threads,
+            |b, _| {
+                b.iter(|| {
+                    pool.install(|| {
+                        let _results: Vec<(Record, Record)> =
+                            std::hint::black_box(&pairs)
+                                .par_iter()
+                                .map(|(r1, r2)| process_pair(r1, r2, &config, &tag_maps))
+                                .collect();
+                    })
+                })
+            },
+        );
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
 
 criterion_group!(
     benches,
     bench_generate_neighbors,
     bench_check_read,
-    bench_batch_throughput
+    bench_batch_throughput,
+    bench_batch_scaling,
 );
 criterion_main!(benches);
